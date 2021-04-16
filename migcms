@@ -1,0 +1,14 @@
+#!/bin/bash
+function migcms() {
+  echo 'Paste domains, one per line. Then [Ctrl + d]'
+  cat > ./domainlist.tmp.txt
+  cat ./domainlist.tmp.txt | while read x ; do
+  domain_curl=$('http://'"$x")
+  curl -sL "$domain_curl" | tee tempcms.txt | grep -ism 2 '<meta name="generator"' | sed -e 's|<meta name="generator" ||g' | sed -e 's|" />||g' | sed -e 's|content="||g' | awk '{print $1" "$2}' | sed -e 's|! -||g'
+  grep -sm 1 'type="text/x-magento-init"' tempcms.txt | grep -soi magento | sed -e 's|m|M|g'
+  echo '---'
+  done
+  rm tempcms.txt
+  rm ./domainlist.tmp.txt
+}
+migcms
