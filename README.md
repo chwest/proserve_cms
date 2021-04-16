@@ -2,4 +2,4 @@
 
 ### Checks the content management system of a site. 
 
-#### Uses API for whatcms.org
+* Uses API for whatcms.org
