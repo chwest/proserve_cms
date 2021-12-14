@@ -1,14 +1,97 @@
 #!/bin/bash
-function migcms() {
-  echo 'Paste domains, one per line. Then [Ctrl + d]'
-  cat > ./domainlist.tmp.txt
-  cat ./domainlist.tmp.txt | while read x ; do
-  domain_curl=$(echo 'http://'"$x")
-  curl -sL "$domain_curl" | tee tempcms.txt | grep -ism 2 '<meta name="generator"' | sed -e 's|<meta name="generator" ||g' | sed -e 's|" />||g' | sed -e 's|content="||g' | awk '{print $1" "$2}' | sed -e 's|! -||g'
-  grep -sm 1 'type="text/x-magento-init"' tempcms.txt | grep -soi magento | sed -e 's|m|M|g'
-  echo '---'
-  done
-  rm tempcms.txt
-  rm ./domainlist.tmp.txt
+
+# Modified from https://github.com/GONZOsint/WhatCMS 
+
+# SET YOUR WHATCMS API KEY HERE
+cmsapikey=''
+
+#APIKEYcheck
+apikeycheck()
+{
+        if [[ -z $cmsapikey ]];then
+                echo ""
+                echo -e " \e[38;5;196;1m[#] API Key not found.\e[0m"
+                echo -e " \e[1m[-] Set your WhatCMS API Key on the source code\e[0m"
+                echo ""
+                exit 0
+        fi
 }
-migcms
+
+#DomainCheck function
+domaincheck()
+{
+        if [[ -z $1 ]];then
+                echo ""
+        else
+                verify=$(echo $1 | grep -c -P '^(?!:\/\/)(?=.{1,255}$)((.{1,63}\.){1,127}(?![0-9]*$)[a-z0-9-]+\.?.*)')
+                if [ $verify != 0 ]; then
+                        echo ""
+                fi
+        fi
+}
+
+#WhatCMS function
+whatcms()
+{
+    cms_values=$(curl -s "https://whatcms.org/APIEndpoint?key=$cmsapikey&url=$1" )
+        cms=$(echo $cms_values | jq -r '.result.name' )
+        version=$(echo $cms_values | jq -r '.result.version' )
+        echo -e " \e[1m    [URL]: \e[1;36m$1\e[0m"
+        echo -e " \e[1m    [CMS]: \e[1;92m$cms\e[0m"
+        echo -e " \e[1m[VERSION]: \e[1;92m$version\e[0m"
+}
+
+#WhoHOST function
+whohost()
+{
+        echo -n 'Waiting on Host info'
+        sleep 10
+        host_values=$(curl -s "https://www.who-hosts-this.com/APIEndpoint?key=$cmsapikey&url=$1")
+        isp=$(echo $host_values | jq -r '.results[].isp_name' )
+        ip=$(echo $host_values | jq -r '.results[].ip' )
+        echo -e '\r \e[1m   [HOST]: \e[1;36m'"$isp"'\e[0m'
+        echo -e ' \e[1m     [IP]: \e[1;36m'"$ip"'\e[0m\n'
+}
+
+#CMSToolsask function
+
+
+#Help function
+helpf()
+{
+        echo ""
+        echo -e " \e[1m[+] Usage:\e[0m \e[3m./whatcms example.com\e[0m"
+        echo ""
+}
+
+#-------------------------------------------------------------------------------------------------------------------------------
+apikeycheck
+domaincheck $1
+if [[ -z $1 ]];then
+        helpf
+        echo ""
+        exit 0
+else
+        if [[ $verify != "0" ]];then
+                whatcms $1
+                whohost $1
+
+        else
+                if [[ $1 != "" ]];then
+                        if [[ $1 == "--help" ]] || [[ $1 == "-h" ]];then
+                                helpf
+                                echo ""
+                                exit 0
+                        elif [[ $1 != "--help" ]] || [[ $1 != "-h" ]]; then
+                                echo ""
+                                echo -e " \e[38;5;196;1m[#] Invalid domain or parameter\e[0m"
+                                echo ""
+                        else
+                                echo ""
+                                exit 0
+                        fi
+                fi
+        fi
+fi
+
+exit 0
